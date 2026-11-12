@@ -56,6 +56,11 @@ btl_tqptdl/
 │   └── ci.yml                           # GitHub Actions kiểm tra cú pháp & chạy unit tests tự động
 ├── notebooks/
 │   └── 01_EDA_Superstore.ipynb          # Notebook EDA & Trực quan hóa (Pandas, Matplotlib, Seaborn, Plotly)
+├── powerbi/
+│   ├── Huong_dan_PowerBI.md             # Hướng dẫn từng bước dựng file .pbix cho 4 trang
+│   ├── power_query.m                    # Script Power Query làm sạch Sample - Superstore.csv
+│   ├── measures.dax                     # Bộ công thức DAX Measures chuẩn
+│   └── theme_superstore.json            # Theme màu sắc & bo góc dùng chung cho Power BI
 └── docs/
     ├── Bao_cao_Du_an.md                 # Tài liệu báo cáo BTL đầy đủ 5 phần
     ├── Slide_Thuyet_Trinh.md            # Dàn ý & nội dung Slide thuyết trình (14 trang)

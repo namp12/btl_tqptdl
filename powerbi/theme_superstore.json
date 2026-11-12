@@ -1,0 +1,42 @@
+{
+  "name": "Superstore BI Theme",
+  "dataColors": [
+    "#1F77B4",
+    "#0F766E",
+    "#FF7F0E",
+    "#2CA02C",
+    "#B91C1C",
+    "#6366F1",
+    "#F59E0B",
+    "#06B6D4"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#1F2937",
+  "tableAccent": "#1F77B4",
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [
+          {
+            "color": { "solid": { "color": "#FFFFFF" } },
+            "transparency": 0
+          }
+        ],
+        "border": [
+          {
+            "show": true,
+            "color": { "solid": { "color": "#E2E8F0" } },
+            "radius": 8
+          }
+        ],
+        "title": [
+          {
+            "fontFamily": "Segoe UI Semibold",
+            "fontSize": 13,
+            "fontColor": { "solid": { "color": "#0F172A" } }
+          }
+        ]
+      }
+    }
+  }
+}
