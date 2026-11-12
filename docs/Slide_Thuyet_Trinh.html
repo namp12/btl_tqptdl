@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide Thuyết Trình - Superstore BI Dashboard</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --primary: #1d4ed8;
+      --accent: #0f766e;
+      --danger: #b91c1c;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .deck {
+      width: min(1100px, 94vw);
+      height: min(640px, 84vh);
+      position: relative;
+    }
+    .slide {
+      display: none;
+      width: 100%;
+      height: 100%;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 44px 56px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+    }
+    .slide.active { display: flex; }
+    .slide.title-slide {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+      color: #ffffff;
+      justify-content: center;
+      text-align: left;
+    }
+    .slide.title-slide h1 { font-size: 2.5rem; margin-bottom: 18px; line-height: 1.2; }
+    .slide.title-slide p { color: #cbd5e1; font-size: 1.15rem; margin-bottom: 10px; }
+    .tag {
+      display: inline-block;
+      background: rgba(59, 130, 246, 0.25);
+      color: #93c5fd;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+    .header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .header h2 { font-size: 1.65rem; color: var(--primary); }
+    .header span { font-size: 0.9rem; color: var(--muted); font-weight: 600; }
+    .content { flex: 1; font-size: 1.05rem; line-height: 1.65; }
+    ul { padding-left: 22px; }
+    li { margin-bottom: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 12px; }
+    .box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+    .box h3 { font-size: 1.05rem; color: var(--accent); margin-bottom: 8px; }
+    .metric { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+    .danger { color: var(--danger); font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.95rem; }
+    th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; }
+    th { background: #eff6ff; color: var(--primary); }
+    .footer {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .controls {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: #e2e8f0;
+    }
+    button {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button:hover { background: #334155; }
+    @media print {
+      body { background: #fff; height: auto; overflow: visible; }
+      .deck { width: 100%; height: auto; }
+      .slide { display: flex !important; page-break-after: always; box-shadow: none; border: 1px solid #cbd5e1; height: 95vh; margin-bottom: 16px; }
+      .controls { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <!-- Slide 1 -->
+    <section class="slide title-slide active">
+      <div>
+        <span class="tag">BÁO CÁO BÀI TẬP LỚN • PHÂN TÍCH & TRỰC QUAN HÓA DỮ LIỆU</span>
+        <h1>Phân tích Dữ liệu Bán lẻ Superstore &amp; Xây dựng Dashboard Streamlit 5 Trang</h1>
+        <p><strong>Bộ dữ liệu:</strong> Kaggle Superstore Sales Dataset (9.994 dòng × 21 cột)</p>
+        <p><strong>Công nghệ:</strong> Python, Pandas, Plotly, Streamlit, GitHub</p>
+        <p><strong>Nhóm thực hiện:</strong> [Tên nhóm / 5 thành viên phụ trách Page 1–5]</p>
+      </div>
+    </section>
+
+    <!-- Slide 2 -->
+    <section class="slide">
+      <div class="header"><h2>1. Giới thiệu bài toán khách hàng</h2><span>Slide 2 / 14</span></div>
+      <div class="content">
+        <div class="grid-2">
+          <div class="box">
+            <h3>Bối cảnh doanh nghiệp</h3>
+            <ul>
+              <li>Chuỗi bán lẻ Superstore tại Hoa Kỳ vận hành trên 4 khu vực, 49 tiểu bang và 3 ngành hàng chính.</li>
+              <li>Dữ liệu giao dịch lớn (2014–2017) chưa có công cụ trực quan hóa tự động cho cấp quản lý.</li>
+            </ul>
+          </div>
+          <div class="box">
+            <h3>Câu hỏi kinh doanh cốt lõi</h3>
+            <ul>
+              <li>Doanh thu và lợi nhuận tăng trưởng ra sao theo thời gian?</li>
+              <li>Khu vực, phân khúc và sản phẩm nào mang lại lợi nhuận cao nhất?</li>
+              <li>Chính sách chiết khấu hiện tại có đang gây thua lỗ không?</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Bài toán khách hàng</span></div>
+    </section>
+
+    <!-- Slide 3 -->
+    <section class="slide">
+      <div class="header"><h2>2. Mô tả bộ dữ liệu (Superstore Dataset)</h2><span>Slide 3 / 14</span></div>
+      <div class="content">
+        <div class="grid-3">
+          <div class="box"><h3>Quy mô dữ liệu</h3><div class="metric">9.994 × 21</div><p>5.009 đơn hàng • 793 khách hàng • 1.862 sản phẩm</p></div>
+          <div class="box"><h3>Tổng doanh thu</h3><div class="metric">$2.30M</div><p>Chính xác: 2,297,200.86 USD</p></div>
+          <div class="box"><h3>Tổng lợi nhuận</h3><div class="metric">$286.4K</div><p>Biên lợi nhuận chung: 12.47%</p></div>
+        </div>
+        <ul style="margin-top: 18px;">
+          <li><strong>Thông tin đơn hàng:</strong> <code>Row ID</code>, <code>Order ID</code>, <code>Order Date</code>.</li>
+          <li><strong>Khách hàng &amp; Giao hàng:</strong> <code>Customer ID</code>, <code>Customer Name</code>, <code>Segment</code>, <code>Ship Date</code>, <code>Ship Mode</code>, <code>Country</code>, <code>City</code>, <code>State</code>, <code>Postal Code</code>, <code>Region</code>.</li>
+          <li><strong>Sản phẩm &amp; Tài chính:</strong> <code>Product ID</code>, <code>Category</code>, <code>Sub-Category</code>, <code>Product Name</code>, <code>Sales</code>, <code>Quantity</code>, <code>Discount</code>, <code>Profit</code>.</li>
+        </ul>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Mô tả dữ liệu</span></div>
+    </section>
+
+    <!-- Slide 4 -->
+    <section class="slide">
+      <div class="header"><h2>3. Quy trình làm sạch &amp; Tiền xử lý (EDA — 25%)</h2><span>Slide 4 / 14</span></div>
+      <div class="content">
+        <ul>
+          <li><strong>Đọc &amp; Kiểm tra thiếu dữ liệu:</strong> Đọc file với bảng mã <code>windows-1252</code>; kết quả <strong>0 giá trị Null</strong> trên toàn bộ 21 cột.</li>
+          <li><strong>Xử lý trùng lặp:</strong> Phát hiện và loại bỏ <strong>1 bản ghi trùng lặp nghiệp vụ</strong> (tại <code>Row ID = 3407</code>), còn <strong>9.993 dòng</strong> hợp lệ.</li>
+          <li><strong>Chuẩn hóa kiểu dữ liệu:</strong> Chuyển <code>Order Date</code>, <code>Ship Date</code> sang <code>datetime64</code>; chuẩn hóa <code>Postal Code</code> dạng chuỗi 5 ký tự.</li>
+          <li><strong>Feature Engineering:</strong> Tạo <code>Order_Year</code>, <code>Order_YearMonth</code>, <code>Order_Quarter</code>, <code>Shipping_Days</code>, <code>Profit_Margin_Pct</code>.</li>
+          <li><strong>Xử lý ngoại lệ (IQR):</strong> Gắn cờ ngoại lệ cho <code>Sales</code> (1.167 điểm) &amp; <code>Profit</code> (1.881 điểm), kèm tùy chọn <em>Winsorize</em> trên Sidebar.</li>
+        </ul>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Làm sạch dữ liệu</span></div>
+    </section>
+
+    <!-- Slide 5 -->
+    <section class="slide">
+      <div class="header"><h2>4. Thống kê tổng hợp (GroupBy &amp; Pivot Table)</h2><span>Slide 5 / 14</span></div>
+      <div class="content">
+        <table>
+          <thead><tr><th>Chiều phân tích</th><th>Phát hiện nổi bật từ GroupBy &amp; Pivot Table</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Theo Năm (2014–2017)</strong></td><td>Doanh thu tăng từ $484.2K (2014) lên $733.2K (2017); số đơn hàng tăng từ 969 lên 1.687 đơn.</td></tr>
+            <tr><td><strong>Theo Khu vực (Region)</strong></td><td>West ($725.5K; biên 14.94%) &amp; East ($678.8K; biên 13.48%) dẫn đầu; Central biên thấp nhất (7.92%).</td></tr>
+            <tr><td><strong>Theo Danh mục (Category)</strong></td><td>Technology ($145.5K lợi nhuận) &amp; Office Supplies ($122.5K) sinh lời tốt; Furniture chỉ đạt biên 2.49%.</td></tr>
+            <tr><td><strong>Pivot Region × Category</strong></td><td>Xác định rõ thế mạnh từng ngành hàng tại từng vùng thị trường để phân bổ tồn kho hợp lý.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>GroupBy &amp; Pivot Table</span></div>
+    </section>
+
+    <!-- Slide 6 -->
+    <section class="slide">
+      <div class="header"><h2>5. Kiến trúc hệ thống (Clean Architecture)</h2><span>Slide 6 / 14</span></div>
+      <div class="content">
+        <div class="grid-2">
+          <div class="box">
+            <h3>Tách module 4 tầng</h3>
+            <ul>
+              <li><code>data/</code>: <code>loader.py</code> (CSV, làm sạch, <code>@st.cache_data</code>) &amp; <code>analytics.py</code> (Forecast, RFM, Apriori).</li>
+              <li><code>components/</code> &amp; <code>utils/</code>: Đồng bộ <code>st.session_state</code>, Sidebar dùng chung &amp; Gemini 3.8 Flash Chatbot.</li>
+            </ul>
+          </div>
+          <div class="box">
+            <h3>5 Trang chức năng (<code>pages/</code>)</h3>
+            <ul>
+              <li><strong>Page 1:</strong> KPI (<code>st.metric</code>) + <strong>Phân khúc RFM</strong></li>
+              <li><strong>Page 2:</strong> Line chart + <strong>Dự báo Prophet / ARIMA</strong></li>
+              <li><strong>Page 3:</strong> Bar chart + <code>multiselect</code> + <strong>Bản đồ Mỹ</strong></li>
+              <li><strong>Page 4:</strong> Top N + <strong>Sunburst</strong> + <strong>Apriori</strong></li>
+              <li><strong>Page 5:</strong> UX, Cache &amp; <strong>Gemini AI Chatbot</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Kiến trúc hệ thống</span></div>
+    </section>
+
+    <!-- Slide 7 -->
+    <section class="slide">
+      <div class="header"><h2>6. Page 1 — Tổng quan kinh doanh &amp; RFM</h2><span>Slide 7 / 14</span></div>
+      <div class="content">
+        <ul>
+          <li><strong>Mục tiêu:</strong> Theo dõi KPI tài chính tức thời và phân loại khách hàng để cá nhân hóa chăm sóc.</li>
+          <li><strong>Triển khai kỹ thuật:</strong> Dùng <code>st.metric</code> (Doanh thu, Đơn hàng, Số lượng) kết hợp <strong>mô hình RFM</strong> tự động gắn nhãn <em>VIP</em>, <em>Khách hàng trung thành</em>, <em>Khách hàng mới</em>, <em>Nguy cơ rời bỏ</em>.</li>
+          <li><strong>Insight:</strong> Phân khúc <code>Consumer</code> chiếm 50.56% doanh thu; nhóm <em>Nguy cơ rời bỏ</em> cần chiến dịch giữ chân sớm.</li>
+        </ul>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Page 1</span></div>
+    </section>
+
+    <!-- Slide 8 -->
+    <section class="slide">
+      <div class="header"><h2>7. Page 2 — Xu hướng &amp; Dự báo (Prophet / ARIMA)</h2><span>Slide 8 / 14</span></div>
+      <div class="content">
+        <ul>
+          <li><strong>Mục tiêu:</strong> Phát hiện mùa vụ lịch sử và dự báo doanh thu 3–6 tháng tiếp theo.</li>
+          <li><strong>Triển khai kỹ thuật:</strong> Biểu đồ đường <strong>Plotly</strong> với <code>st.date_input</code> &amp; <code>st.slider</code>, tích hợp <strong>Prophet / ARIMA</strong> vẽ đường nét đứt dự báo kèm vùng tin cậy.</li>
+          <li><strong>Insight:</strong> Doanh thu đạt đỉnh vào Quý 4 hằng năm (tháng 11–12) và xu hướng dự báo tiếp tục tăng trưởng.</li>
+        </ul>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Page 2</span></div>
+    </section>
+
+    <!-- Slide 9 -->
+    <section class="slide">
+      <div class="header"><h2>8. Page 3 — Khu vực &amp; Bản đồ Địa lý Hoa Kỳ</h2><span>Slide 9 / 14</span></div>
+      <div class="content">
+        <ul>
+          <li><strong>Mục tiêu:</strong> So sánh hiệu suất 4 vùng và quan sát phân bố trực quan trên bản đồ từng tiểu bang.</li>
+          <li><strong>Triển khai kỹ thuật:</strong> Biểu đồ cột <strong>Plotly</strong> + <code>st.multiselect</code> đa khu vực + <strong>Bản đồ Choropleth Hoa Kỳ</strong> hỗ trợ zoom và hover chi tiết.</li>
+          <li><strong>Insight:</strong> <code>West</code> và <code>East</code> tạo gần 70% lợi nhuận; <code>Central</code> biên lợi nhuận thấp (7.92%), điển hình là Texas lỗ nặng do chiết khấu.</li>
+        </ul>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Page 3</span></div>
+    </section>
+
+    <!-- Slide 10 -->
+    <section class="slide">
+      <div class="header"><h2>9. Page 4 — Sản phẩm, Sunburst &amp; Giỏ hàng (Apriori)</h2><span>Slide 10 / 14</span></div>
+      <div class="content">
+        <ul>
+          <li><strong>Mục tiêu:</strong> Xếp hạng Top N, khoan sâu danh mục và khai phá luật bán chéo (cross-sell).</li>
+          <li><strong>Triển khai kỹ thuật:</strong> Top N theo thời gian/khu vực + <strong>Biểu đồ Sunburst/Treemap</strong> click drill-down (<code>Category → Sub-Category → Product</code>) + <strong>Thuật toán Apriori</strong>.</li>
+          <li><strong>Insight:</strong> <code>Copiers</code> ($55.6K) dẫn đầu lợi nhuận; <code>Tables</code> (<span class="danger">-$17.7K</span>) lỗ nặng nhất; Apriori tìm ra các cặp mua kèm có Lift &gt; 1.</li>
+        </ul>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Page 4</span></div>
+    </section>
+
+    <!-- Slide 11 -->
+    <section class="slide">
+      <div class="header"><h2>10. Page 5 — UX, Cache &amp; Chatbot AI Gemini 3.8 Flash</h2><span>Slide 11 / 14</span></div>
+      <div class="content">
+        <ul>
+          <li><strong>Đồng bộ <code>st.session_state</code>:</strong> Bộ lọc ở Sidebar (Ngày, Khu vực, Danh mục...) được giữ nguyên khi chuyển qua lại giữa Page 1–5.</li>
+          <li><strong>Tối ưu hiệu năng &amp; UX:</strong> Dùng <code>st.tabs</code>, <code>st.expander</code> và <code>@st.cache_data</code> nạp CSV một lần vào RAM.</li>
+          <li><strong>Chatbot AI B2B (Gemini 3.8 Flash):</strong> Tự đọc ngữ cảnh DataFrame đang lọc để trả lời câu hỏi của lãnh đạo bằng ngôn ngữ tự nhiên.</li>
+        </ul>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Page 5</span></div>
+    </section>
+
+    <!-- Slide 12 -->
+    <section class="slide">
+      <div class="header"><h2>11. Phát hiện trọng tâm: Tác động của Chiết khấu</h2><span>Slide 12 / 14</span></div>
+      <div class="content">
+        <div class="grid-3">
+          <div class="box"><h3>Discount = 0%</h3><div class="metric" style="color: var(--accent);">+$66.90</div><p>Lợi nhuận TB/giao dịch<br/>Tỷ lệ lỗ: <strong>0.00%</strong></p></div>
+          <div class="box"><h3>Discount &gt; 0%</h3><div class="metric" style="color: #d97706;">-$6.66</div><p>Lợi nhuận TB/giao dịch<br/>Tỷ lệ lỗ: <strong>36.01%</strong></p></div>
+          <div class="box"><h3>Discount &gt; 20%</h3><div class="metric" style="color: var(--danger);">-$97.18</div><p>Lợi nhuận TB/giao dịch<br/>Tỷ lệ lỗ: <strong class="danger">96.77%</strong></p></div>
+        </div>
+        <p style="margin-top: 20px;"><strong>Kết luận phân tích:</strong> 1.871 dòng giao dịch bị lỗ (18.72%) bắt nguồn chủ yếu từ các đơn hàng áp dụng mức chiết khấu vượt ngưỡng <strong>20%</strong>.</p>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Insight cốt lõi</span></div>
+    </section>
+
+    <!-- Slide 13 -->
+    <section class="slide">
+      <div class="header"><h2>12. Đề xuất giải pháp kinh doanh</h2><span>Slide 13 / 14</span></div>
+      <div class="content">
+        <ul>
+          <li><strong>1. Giới hạn trần chiết khấu ≤ 20%:</strong> Yêu cầu phê duyệt cấp quản lý đối với mức giảm giá vượt 20% để chấm dứt tình trạng bán lỗ diện rộng.</li>
+          <li><strong>2. Tái cấu trúc danh mục <code>Tables</code> &amp; <code>Bookcases</code>:</strong> Đánh giá lại chi phí vận chuyển hàng cồng kềnh, điều chỉnh giá bán hoặc bán kèm combo phụ kiện biên lợi nhuận cao.</li>
+          <li><strong>3. Tối ưu thị trường <code>Central</code>:</strong> Kiểm soát lại chính sách khuyến mãi tại khu vực Central nhằm nâng biên lợi nhuận từ 7.92% lên tiệm cận mức 12.47%.</li>
+          <li><strong>4. Đẩy mạnh bán chéo <code>Technology</code>:</strong> Tập trung vào nhóm <code>Home Office</code> và <code>Corporate</code> với các mặt hàng sinh lời cao (<code>Copiers</code>, <code>Phones</code>).</li>
+        </ul>
+      </div>
+      <div class="footer"><span>Superstore BI Dashboard</span><span>Đề xuất kinh doanh</span></div>
+    </section>
+
+    <!-- Slide 14 -->
+    <section class="slide title-slide">
+      <div>
+        <span class="tag">TỔNG KẾT DỰ ÁN</span>
+        <h1>Cảm ơn thầy/cô và các bạn đã lắng nghe!</h1>
+        <p>✅ Hoàn thành EDA &amp; làm sạch dữ liệu với Pandas (25%)</p>
+        <p>✅ Hoàn thành Dashboard Streamlit 5 trang liên kết logic</p>
+        <p>✅ Đầy đủ Báo cáo dự án, Slide thuyết trình &amp; Mã nguồn sẵn sàng đẩy lên GitHub</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="controls">
+    <button onclick="changeSlide(-1)">◀ Trước</button>
+    <span id="counter">1 / 14</span>
+    <button onclick="changeSlide(1)">Sau ▶</button>
+    <button onclick="window.print()">🖨️ In / Xuất PDF</button>
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll(".slide");
+    const counter = document.getElementById("counter");
+    let current = 0;
+
+    function showSlide(index) {
+      slides[current].classList.remove("active");
+      current = (index + slides.length) % slides.length;
+      slides[current].classList.add("active");
+      counter.textContent = `${current + 1} / ${slides.length}`;
+    }
+
+    function changeSlide(delta) { showSlide(current + delta); }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " ") changeSlide(1);
+      if (e.key === "ArrowLeft") changeSlide(-1);
+    });
+  </script>
+</body>
+</html>
