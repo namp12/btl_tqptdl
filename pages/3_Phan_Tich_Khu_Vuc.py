@@ -145,3 +145,25 @@ with sla_right:
         labels={"x": "Hình thức giao hàng", "y": "Khu vực", "color": "Ngày TB"},
     )
     st.plotly_chart(fig_sla_heat, use_container_width=True)
+
+st.divider()
+st.subheader("🧭 Ma trận Tứ phân vị Tiểu bang (Doanh thu vs. Biên lợi nhuận %)")
+if not state_summary.empty:
+    median_sales = float(state_summary["Total_Sales"].median())
+    fig_quad = px.scatter(
+        state_summary,
+        x="Total_Sales",
+        y="Profit_Margin_Pct",
+        size="Order_Count",
+        color="Region",
+        text="State_Code",
+        hover_name="State",
+        hover_data={"Total_Sales": ":,.2f", "Total_Profit": ":,.2f", "Profit_Margin_Pct": ":.2f"},
+        title="Định vị hiệu quả các Tiểu bang (Đường dọc: Trung vị Doanh thu | Đường ngang: Hòa vốn 0%)",
+        labels={"Total_Sales": "Tổng doanh thu (USD)", "Profit_Margin_Pct": "Biên lợi nhuận (%)"},
+        height=500,
+    )
+    fig_quad.update_traces(textposition="top center")
+    fig_quad.add_hline(y=0, line_dash="dash", line_color="red", annotation_text="Hòa vốn (0%)")
+    fig_quad.add_vline(x=median_sales, line_dash="dot", line_color="gray", annotation_text="Trung vị Doanh thu")
+    st.plotly_chart(fig_quad, use_container_width=True)

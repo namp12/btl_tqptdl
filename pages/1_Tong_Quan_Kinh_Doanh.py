@@ -9,6 +9,7 @@ import streamlit as st
 from components.sidebar import init_page, render_global_sidebar
 from data.analytics import (
     compute_cohort_retention,
+    compute_kmeans_clusters,
     compute_rfm_segments,
     summarize_by_category,
 )
@@ -28,6 +29,12 @@ def cached_rfm(data: pd.DataFrame) -> pd.DataFrame:
 def cached_cohort(data: pd.DataFrame) -> pd.DataFrame:
     """Cache ma trận tỷ lệ giữ chân khách hàng theo Cohort."""
     return compute_cohort_retention(data)
+
+
+@st.cache_data(show_spinner=False)
+def cached_kmeans(data: pd.DataFrame, k: int) -> pd.DataFrame:
+    """Cache kết quả phân cụm khách hàng K-Means."""
+    return compute_kmeans_clusters(data, n_clusters=k)
 
 
 st.title("📊 Page 1: Tổng quan kinh doanh & Phân khúc khách hàng (RFM)")
@@ -57,12 +64,13 @@ col6.metric("🚚 Thời gian giao hàng TB", f"{df['Shipping_Days'].mean():.1f}
 
 st.divider()
 
-tab_overview, tab_dist, tab_rfm, tab_cohort = st.tabs(
+tab_overview, tab_dist, tab_rfm, tab_cohort, tab_kmeans = st.tabs(
     [
         "📊 Cơ cấu & Biểu đồ Tổng hợp (Grouped/Stacked)",
         "📉 Phân phối Dữ liệu (Histogram & Boxplot)",
         "🎯 Phân khúc Khách hàng (RFM Analysis)",
         "🔁 Cohort Giữ chân Khách hàng",
+        "🤖 ML Phân cụm (K-Means 3D)",
     ]
 )
 
@@ -227,3 +235,46 @@ with tab_cohort:
         )
         st.plotly_chart(fig_cohort, use_container_width=True)
         st.dataframe(cohort_matrix.style.format("{:.1f}%"), use_container_width=True)
+
+with tab_kmeans:
+    st.subheader("🤖 Phân cụm khách hàng tự động bằng K-Means (Machine Learning)")
+    st.caption("Áp dụng K-Means trên không gian 3 chiều (Recency, log-Frequency, log-Monetary) đã chuẩn hóa Z-score.")
+    k_val = st.slider("Chọn số cụm khách hàng (k)", min_value=3, max_value=6, value=4, step=1)
+    km_df = cached_kmeans(df, k_val)
+
+    fig_3d = px.scatter_3d(
+        km_df,
+        x="Recency",
+        y="Frequency",
+        z="Monetary",
+        color="Cluster_Label",
+        hover_data=["Customer Name", "RFM_Segment", "Total_Profit"],
+        title=f"Biểu đồ 3D K-Means Clustering (k = {k_val})",
+        labels={"Recency": "Recency (ngày)", "Frequency": "Tần suất (đơn)", "Monetary": "Chi tiêu (USD)"},
+        height=560,
+    )
+    st.plotly_chart(fig_3d, use_container_width=True)
+
+    cluster_profile = (
+        km_df.groupby("Cluster_Label", as_index=False)
+        .agg(
+            So_Khach_Hang=("Customer ID", "count"),
+            Recency_TB=("Recency", "mean"),
+            Frequency_TB=("Frequency", "mean"),
+            Monetary_TB=("Monetary", "mean"),
+            Tong_Loi_Nhuan=("Total_Profit", "sum"),
+        )
+        .sort_values("Monetary_TB", ascending=False)
+    )
+    st.dataframe(
+        cluster_profile.style.format(
+            {
+                "Recency_TB": "{:.1f} ngày",
+                "Frequency_TB": "{:.1f} đơn",
+                "Monetary_TB": "${:,.2f}",
+                "Tong_Loi_Nhuan": "${:,.2f}",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )

@@ -72,10 +72,11 @@ c3.metric("💰 Doanh thu lọc được", format_usd(df_filtered["Sales"].sum()
 c4.metric("📈 Lợi nhuận lọc được", format_usd(df_filtered["Profit"].sum()))
 
 # Tổ chức nội dung bằng Tabs
-tab_ai, tab_sim, tab_disc, tab_pivot, tab_data = st.tabs(
+tab_ai, tab_sim, tab_lookup, tab_disc, tab_pivot, tab_data = st.tabs(
     [
         "🤖 Trợ lý AI Phân tích B2B (Gemini Flash)",
         "🎯 What-If Simulator & Cảnh báo Lỗ",
+        "🔎 Tra cứu 360° (Đơn / Khách / SP)",
         "📉 Tác động Chiết khấu & Lợi nhuận",
         "🧮 Pivot Table & GroupBy",
         "🗂️ Dữ liệu sạch & Xuất Báo cáo",
@@ -170,6 +171,56 @@ with tab_sim:
             use_container_width=True,
             hide_index=True,
         )
+
+with tab_lookup:
+    st.subheader("🔎 Tra cứu Hồ sơ 360° (Đơn hàng, Khách hàng & Sản phẩm)")
+    q1, q2 = st.columns([1.2, 2.8])
+    with q1:
+        lookup_type = st.selectbox(
+            "Tìm kiếm theo trường",
+            options=["Customer Name", "Order ID", "Product Name", "City", "State"],
+        )
+    with q2:
+        search_text = st.text_input(
+            "Nhập từ khóa tra cứu",
+            placeholder="Ví dụ: Sean Miller, CA-2016-152156, Canon, Texas...",
+        ).strip()
+
+    if not search_text:
+        st.info("Nhập từ khóa để tra cứu nhanh chi tiết giao dịch và tổng hợp KPI tương ứng.")
+    else:
+        matched = df_filtered[
+            df_filtered[lookup_type].astype(str).str.contains(search_text, case=False, na=False)
+        ]
+        if matched.empty:
+            st.warning(f"Không tìm thấy kết quả nào cho `{search_text}` trong `{lookup_type}`.")
+        else:
+            lk1, lk2, lk3, lk4 = st.columns(4)
+            lk1.metric("Số dòng khớp", format_int(len(matched)))
+            lk2.metric("Số đơn hàng", format_int(matched["Order ID"].nunique()))
+            lk3.metric("Tổng doanh thu", format_usd(matched["Sales"].sum()))
+            lk4.metric("Tổng lợi nhuận", format_usd(matched["Profit"].sum()))
+
+            display_cols = [
+                "Order ID",
+                "Order Date",
+                "Customer Name",
+                "State",
+                "Category",
+                "Sub-Category",
+                "Product Name",
+                "Sales",
+                "Quantity",
+                "Discount",
+                "Profit",
+            ]
+            st.dataframe(
+                matched[display_cols].style.format(
+                    {"Sales": "${:,.2f}", "Profit": "${:,.2f}", "Discount": "{:.0%}"}
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
 
 with tab_disc:
     st.subheader("Mối quan hệ giữa Chiết khấu (Discount) và Lợi nhuận (Profit)")

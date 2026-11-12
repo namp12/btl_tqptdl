@@ -552,3 +552,91 @@ def detect_loss_anomalies(df: pd.DataFrame, profit_threshold: float = -100.0) ->
     return anomalies[cols].sort_values("Profit", ascending=True).reset_index(drop=True)
 
 
+def compute_kmeans_clusters(df: pd.DataFrame, n_clusters: int = 4) -> pd.DataFrame:
+    """Phân cụm khách hàng không giám sát (K-Means) trên không gian RFM chuẩn hóa."""
+    rfm = compute_rfm_segments(df)
+    if len(rfm) < max(3, n_clusters):
+        return rfm.assign(Cluster_Label="Cluster 0")
+
+    features = np.column_stack(
+        [
+            rfm["Recency"].to_numpy(dtype=float),
+            np.log1p(rfm["Frequency"].to_numpy(dtype=float)),
+            np.log1p(np.clip(rfm["Monetary"].to_numpy(dtype=float), 0.0, None)),
+        ]
+    )
+    means = features.mean(axis=0)
+    stds = np.where(features.std(axis=0) == 0, 1.0, features.std(axis=0))
+    scaled = (features - means) / stds
+
+    labels: np.ndarray
+    try:
+        from sklearn.cluster import KMeans  # type: ignore
+
+        km = KMeans(n_clusters=n_clusters, n_init=10, random_state=42)
+        labels = km.fit_predict(scaled)
+    except Exception:
+        # Thuật toán K-Means thuần NumPy dự phòng khi chưa cài scikit-learn
+        rng = np.random.default_rng(42)
+        init_idx = rng.choice(len(scaled), size=n_clusters, replace=False)
+        centroids = scaled[init_idx].copy()
+        labels = np.zeros(len(scaled), dtype=int)
+        for _ in range(50):
+            dists = np.linalg.norm(scaled[:, None, :] - centroids[None, :, :], axis=2)
+            new_labels = np.argmin(dists, axis=1)
+            if np.array_equal(new_labels, labels):
+                break
+            labels = new_labels
+            for c_id in range(n_clusters):
+                mask = labels == c_id
+                if mask.any():
+                    centroids[c_id] = scaled[mask].mean(axis=0)
+
+    rfm = rfm.copy()
+    rfm["Cluster_ID"] = labels
+    # Sắp xếp nhãn cụm theo Monetary trung bình giảm dần để đặt tên nhất quán
+    order = (
+        rfm.groupby("Cluster_ID")["Monetary"]
+        .mean()
+        .sort_values(ascending=False)
+        .index.tolist()
+    )
+    rank_map = {cid: f"Cụm {idx + 1}" for idx, cid in enumerate(order)}
+    rfm["Cluster_Label"] = rfm["Cluster_ID"].map(rank_map)
+    return rfm
+
+
+def compute_yoy_waterfall(df: pd.DataFrame, metric: str = "Sales") -> pd.DataFrame:
+    """Tính biến động tăng/giảm tuyệt đối qua từng năm (YoY Delta) cho biểu đồ Waterfall."""
+    if df.empty or metric not in ("Sales", "Profit"):
+        return pd.DataFrame()
+
+    yearly = (
+        df.groupby("Order_Year", as_index=False)[metric]
+        .sum()
+        .sort_values("Order_Year")
+        .reset_index(drop=True)
+    )
+    if yearly.empty:
+        return pd.DataFrame()
+
+    rows = []
+    for idx, row in yearly.iterrows():
+        yr = int(row["Order_Year"])
+        val = float(row[metric])
+        if idx == 0:
+            rows.append({"Label": f"Năm {yr} (Gốc)", "Value": val, "Measure": "absolute", "Total": val})
+        else:
+            prev_val = float(yearly.loc[idx - 1, metric])
+            delta = val - prev_val
+            rows.append({"Label": f"Thay đổi {yr}", "Value": delta, "Measure": "relative", "Total": val})
+
+    if len(yearly) > 1:
+        last_yr = int(yearly.iloc[-1]["Order_Year"])
+        last_val = float(yearly.iloc[-1][metric])
+        rows.append({"Label": f"Tổng năm {last_yr}", "Value": last_val, "Measure": "total", "Total": last_val})
+
+    return pd.DataFrame(rows)
+
+
+

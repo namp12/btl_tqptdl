@@ -10,6 +10,7 @@ import streamlit as st
 from components.sidebar import init_page, render_global_sidebar
 from data.analytics import (
     compute_seasonality_matrix,
+    compute_yoy_waterfall,
     forecast_monthly_sales,
     summarize_by_time,
 )
@@ -87,13 +88,19 @@ k1.metric("Doanh thu giai đoạn", format_usd(time_df["Total_Sales"].sum()))
 k2.metric("Lợi nhuận giai đoạn", format_usd(time_df["Total_Profit"].sum()))
 k3.metric("Số kỳ quan sát", format_int(len(time_df)))
 
-# Biểu đồ đường lịch sử Plotly
+# Biểu đồ đường lịch sử Plotly + Đường trung bình trượt (Moving Average)
+show_ma = st.checkbox("Hiển thị đường xu hướng trung bình trượt (Moving Average 3 kỳ)", value=True)
+y_cols = ["Total_Sales", "Total_Profit"]
+if show_ma and len(time_df) >= 3:
+    time_df["Sales_MA3"] = time_df["Total_Sales"].rolling(window=3, min_periods=1).mean()
+    y_cols.append("Sales_MA3")
+
 fig_line = px.line(
     time_df,
     x="Period",
-    y=["Total_Sales", "Total_Profit"],
+    y=y_cols,
     markers=True,
-    title=f"Xu hướng Doanh thu & Lợi nhuận theo {granularity}",
+    title=f"Xu hướng Doanh thu, Lợi nhuận & Moving Average theo {granularity}",
     labels={"Period": "Thời gian", "value": "Giá trị (USD)", "variable": "Chỉ số"},
 )
 fig_line.update_layout(hovermode="x unified")
@@ -203,3 +210,27 @@ if not season_matrix.empty:
         labels={"x": "Tháng", "y": "Năm", "color": f"{season_metric} (USD)"},
     )
     st.plotly_chart(fig_season, use_container_width=True)
+
+st.divider()
+st.subheader("📊 Biểu đồ Thác nước Tăng trưởng Qua từng năm (YoY Waterfall)")
+wf_df = compute_yoy_waterfall(df_filtered, metric=season_metric)
+if len(wf_df) >= 2:
+    fig_wf = go.Figure(
+        go.Waterfall(
+            orientation="v",
+            measure=wf_df["Measure"].tolist(),
+            x=wf_df["Label"].tolist(),
+            y=wf_df["Value"].tolist(),
+            text=[f"${v:,.0f}" for v in wf_df["Value"]],
+            textposition="outside",
+            connector={"line": {"color": "#94a3b8"}},
+        )
+    )
+    fig_wf.update_layout(
+        title=f"Biến động tăng/giảm {season_metric} qua các năm (Waterfall Chart)",
+        yaxis_title=f"{season_metric} (USD)",
+        height=440,
+    )
+    st.plotly_chart(fig_wf, use_container_width=True)
+else:
+    st.info("Cần dữ liệu từ 2 năm trở lên để vẽ biểu đồ Waterfall tăng trưởng YoY.")
