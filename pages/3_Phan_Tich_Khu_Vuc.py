@@ -109,3 +109,39 @@ st.plotly_chart(fig_map, use_container_width=True)
 st.subheader("📊 Bảng Pivot Table: Khu vực × Danh mục sản phẩm (Doanh thu)")
 pivot_df = pivot_region_category(df_filtered)
 st.dataframe(pivot_df.style.format("${:,.2f}"), use_container_width=True)
+
+st.divider()
+st.subheader("🚚 Hiệu suất Vận chuyển & Thời gian Giao hàng (Shipping SLA)")
+sla_left, sla_right = st.columns(2)
+
+with sla_left:
+    fig_ship_box = px.box(
+        df_filtered,
+        x="Ship Mode",
+        y="Shipping_Days",
+        color="Ship Mode",
+        title="Phân phối Số ngày giao hàng (Shipping Days) theo Hình thức vận chuyển",
+        labels={"Ship Mode": "Hình thức giao hàng", "Shipping_Days": "Số ngày giao hàng"},
+    )
+    fig_ship_box.update_layout(showlegend=False)
+    st.plotly_chart(fig_ship_box, use_container_width=True)
+
+with sla_right:
+    sla_pivot = (
+        df_filtered.pivot_table(
+            values="Shipping_Days",
+            index="Region",
+            columns="Ship Mode",
+            aggfunc="mean",
+        )
+        .round(2)
+    )
+    fig_sla_heat = px.imshow(
+        sla_pivot,
+        text_auto=".2f",
+        color_continuous_scale="Teal",
+        aspect="auto",
+        title="Thời gian giao hàng trung bình (Ngày): Khu vực × Hình thức vận chuyển",
+        labels={"x": "Hình thức giao hàng", "y": "Khu vực", "color": "Ngày TB"},
+    )
+    st.plotly_chart(fig_sla_heat, use_container_width=True)

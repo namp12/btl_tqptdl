@@ -392,3 +392,163 @@ def run_market_basket_apriori(
         return pd.DataFrame()
     return pd.DataFrame(rows).sort_values(["Lift", "Confidence"], ascending=False).reset_index(drop=True)
 
+
+def compute_cohort_retention(df: pd.DataFrame) -> pd.DataFrame:
+    """Tính ma trận tỷ lệ giữ chân khách hàng theo năm gia nhập (Cohort Retention %)."""
+    if df.empty:
+        return pd.DataFrame()
+
+    cohort_df = df[["Customer ID", "Order_Year"]].drop_duplicates().copy()
+    cohort_df["Cohort_Year"] = cohort_df.groupby("Customer ID")["Order_Year"].transform("min")
+    cohort_df["Cohort_Index"] = cohort_df["Order_Year"] - cohort_df["Cohort_Year"]
+
+    counts = (
+        cohort_df.groupby(["Cohort_Year", "Cohort_Index"])["Customer ID"]
+        .nunique()
+        .unstack(fill_value=0)
+        .sort_index()
+    )
+    if 0 not in counts.columns:
+        return pd.DataFrame()
+
+    cohort_sizes = counts[0].replace(0, np.nan)
+    retention = counts.div(cohort_sizes, axis=0) * 100.0
+    retention.columns = [f"Năm +{int(c)}" if c > 0 else "Năm 0 (Gốc)" for c in retention.columns]
+    retention.index = [f"Cohort {int(y)}" for y in retention.index]
+    return retention.round(1)
+
+
+def compute_seasonality_matrix(df: pd.DataFrame, metric: str = "Sales") -> pd.DataFrame:
+    """Tạo ma trận mùa vụ Năm × Tháng cho Heatmap phân tích chu kỳ."""
+    if df.empty:
+        return pd.DataFrame()
+    pivot = pd.pivot_table(
+        df,
+        values=metric,
+        index="Order_Year",
+        columns="Order_Month",
+        aggfunc="sum",
+        fill_value=0.0,
+    )
+    pivot.columns = [f"Tháng {int(m)}" for m in pivot.columns]
+    return pivot
+
+
+def compute_pareto_abc(df: pd.DataFrame, entity_col: str = "Product Name") -> pd.DataFrame:
+    """Phân tích Pareto 80/20 (ABC Classification) theo doanh thu cho sản phẩm hoặc khách hàng."""
+    if df.empty:
+        return pd.DataFrame()
+
+    grouped = (
+        df.groupby(entity_col, as_index=False)
+        .agg(
+            Total_Sales=("Sales", "sum"),
+            Total_Profit=("Profit", "sum"),
+            Order_Count=("Order ID", "nunique"),
+        )
+        .sort_values("Total_Sales", ascending=False)
+        .reset_index(drop=True)
+    )
+    total_sales = float(grouped["Total_Sales"].sum())
+    if total_sales <= 0:
+        return pd.DataFrame()
+
+    grouped["Sales_Share_Pct"] = (grouped["Total_Sales"] / total_sales) * 100.0
+    grouped["Cumulative_Sales_Pct"] = grouped["Sales_Share_Pct"].cumsum()
+    grouped["Rank"] = np.arange(1, len(grouped) + 1)
+
+    def _abc_class(cum_pct: float) -> str:
+        if cum_pct <= 80.0:
+            return "Nhóm A (Top 80% doanh thu)"
+        if cum_pct <= 95.0:
+            return "Nhóm B (80% – 95%)"
+        return "Nhóm C (5% cuối)"
+
+    grouped["ABC_Class"] = grouped["Cumulative_Sales_Pct"].apply(_abc_class)
+    return grouped
+
+
+def simulate_discount_what_if(
+    df: pd.DataFrame,
+    max_discount_cap: float = 0.20,
+    loss_subcat_uplift_pct: float = 0.0,
+) -> dict[str, float | int]:
+    """Mô phỏng kịch bản What-If: đặt trần chiết khấu tối đa và điều chỉnh giá nhóm lỗ."""
+    if df.empty:
+        return {
+            "actual_sales": 0.0,
+            "sim_sales": 0.0,
+            "actual_profit": 0.0,
+            "sim_profit": 0.0,
+            "profit_gain": 0.0,
+            "actual_loss_rows": 0,
+            "sim_loss_rows": 0,
+            "actual_margin_pct": 0.0,
+            "sim_margin_pct": 0.0,
+        }
+
+    sim = df[["Sales", "Discount", "Profit", "Sub-Category"]].copy()
+    # Suy ra giá vốn giao dịch và giá niêm yết gốc trước chiết khấu
+    implied_cost = sim["Sales"] - sim["Profit"]
+    safe_disc = np.clip(sim["Discount"], 0.0, 0.99)
+    gross_price = sim["Sales"] / (1.0 - safe_disc)
+
+    new_disc = np.minimum(safe_disc, max_discount_cap)
+    uplift_mask = sim["Sub-Category"].isin(["Tables", "Bookcases", "Supplies"])
+    uplift_mult = np.where(uplift_mask, 1.0 + (loss_subcat_uplift_pct / 100.0), 1.0)
+
+    sim_sales = gross_price * (1.0 - new_disc) * uplift_mult
+    sim_profit = sim_sales - implied_cost
+
+    actual_sales = float(sim["Sales"].sum())
+    actual_profit = float(sim["Profit"].sum())
+    total_sim_sales = float(sim_sales.sum())
+    total_sim_profit = float(sim_profit.sum())
+
+    return {
+        "actual_sales": actual_sales,
+        "sim_sales": total_sim_sales,
+        "actual_profit": actual_profit,
+        "sim_profit": total_sim_profit,
+        "profit_gain": total_sim_profit - actual_profit,
+        "actual_loss_rows": int((sim["Profit"] < 0).sum()),
+        "sim_loss_rows": int((sim_profit < 0).sum()),
+        "actual_margin_pct": (actual_profit / actual_sales * 100.0) if actual_sales else 0.0,
+        "sim_margin_pct": (total_sim_profit / total_sim_sales * 100.0) if total_sim_sales else 0.0,
+    }
+
+
+def detect_loss_anomalies(df: pd.DataFrame, profit_threshold: float = -100.0) -> pd.DataFrame:
+    """Phát hiện các dòng giao dịch thua lỗ nghiêm trọng kèm phân loại nguyên nhân gốc rễ."""
+    anomalies = df[df["Profit"] <= profit_threshold].copy()
+    if anomalies.empty:
+        return anomalies
+
+    def _root_cause(row: pd.Series) -> str:
+        high_disc = row["Discount"] > 0.20
+        loss_subcat = row["Sub-Category"] in ("Tables", "Bookcases", "Supplies")
+        if high_disc and loss_subcat:
+            return "Chiết khấu >20% & Nhóm hàng lỗ"
+        if high_disc:
+            return "Chiết khấu sâu (>20%)"
+        if loss_subcat:
+            return "Nhóm hàng biên âm (Tables/Bookcases/Supplies)"
+        return "Giá vốn/Chi phí vận chuyển cao"
+
+    anomalies["Nguyên_Nhân_Gợi_Ý"] = anomalies.apply(_root_cause, axis=1)
+    cols = [
+        "Order ID",
+        "Order Date",
+        "State",
+        "Region",
+        "Category",
+        "Sub-Category",
+        "Product Name",
+        "Sales",
+        "Discount",
+        "Profit",
+        "Nguyên_Nhân_Gợi_Ý",
+    ]
+    return anomalies[cols].sort_values("Profit", ascending=True).reset_index(drop=True)
+
+

@@ -8,7 +8,11 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from components.sidebar import init_page, render_global_sidebar
-from data.analytics import forecast_monthly_sales, summarize_by_time
+from data.analytics import (
+    compute_seasonality_matrix,
+    forecast_monthly_sales,
+    summarize_by_time,
+)
 from utils.formatters import format_int, format_usd
 
 init_page("Page 2 - Xu hướng & Dự báo", icon="📈")
@@ -180,3 +184,22 @@ try:
         )
 except ValueError as err:
     st.info(str(err))
+
+st.divider()
+st.subheader("🗓️ Bản đồ nhiệt Mùa vụ (Seasonality Heatmap: Năm × Tháng)")
+season_metric = st.radio(
+    "Chọn chỉ số mùa vụ",
+    options=["Sales", "Profit"],
+    horizontal=True,
+)
+season_matrix = compute_seasonality_matrix(df_filtered, metric=season_metric)
+if not season_matrix.empty:
+    fig_season = px.imshow(
+        season_matrix,
+        text_auto=".2s",
+        color_continuous_scale="Blues" if season_metric == "Sales" else "RdYlGn",
+        aspect="auto",
+        title=f"Heatmap Mùa vụ {season_metric} theo Năm và Tháng (Nhận diện đỉnh Quý 4)",
+        labels={"x": "Tháng", "y": "Năm", "color": f"{season_metric} (USD)"},
+    )
+    st.plotly_chart(fig_season, use_container_width=True)

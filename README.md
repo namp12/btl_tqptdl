@@ -44,11 +44,11 @@ btl_tqptdl/
 │   ├── formatters.py                    # Định dạng tiền tệ/số và ánh xạ 51 mã tiểu bang Hoa Kỳ
 │   └── session_state.py                 # Quản lý state toàn cục (ss_date_range, ss_regions, ...)
 ├── pages/
-│   ├── 1_Tong_Quan_Kinh_Doanh.py        # Page 1: KPI (st.metric), Grouped/Stacked Bar, Histogram/Boxplot & RFM
-│   ├── 2_Xu_Huong_Doanh_Thu.py          # Page 2: Line chart Plotly + Bộ lọc động + Dự báo Prophet/ARIMA
-│   ├── 3_Phan_Tich_Khu_Vuc.py           # Page 3: Bar chart + multiselect + Bản đồ Choropleth Hoa Kỳ
-│   ├── 4_Phan_Tich_San_Pham.py          # Page 4: Top N + Sunburst/Treemap + Market Basket (Apriori)
-│   └── 5_Trai_Nghiem_Nguoi_Dung.py      # Page 5: Sidebar, Tabs/Expander, @st.cache_data & Gemini AI Chatbot
+│   ├── 1_Tong_Quan_Kinh_Doanh.py        # Page 1: KPI, Grouped/Stacked, Histogram/Boxplot, RFM & Cohort Retention
+│   ├── 2_Xu_Huong_Doanh_Thu.py          # Page 2: Line chart, Dự báo Prophet/ARIMA & Seasonality Heatmap
+│   ├── 3_Phan_Tich_Khu_Vuc.py           # Page 3: Bar chart, multiselect, Bản đồ Mỹ & Shipping SLA
+│   ├── 4_Phan_Tich_San_Pham.py          # Page 4: Top N, Sunburst/Treemap, Apriori & Pareto 80/20 (ABC)
+│   └── 5_Trai_Nghiem_Nguoi_Dung.py      # Page 5: What-If Simulator, Cảnh báo lỗ, Cache, Export & Gemini AI
 ├── notebooks/
 │   └── 01_EDA_Superstore.ipynb          # Notebook EDA & Trực quan hóa (Pandas, Matplotlib, Seaborn, Plotly)
 └── docs/
@@ -63,10 +63,10 @@ btl_tqptdl/
 
 | Trang Dashboard | Tệp mã nguồn | Thành viên | Yêu cầu trực quan hóa & Tính năng chính |
 | :--- | :--- | :--- | :--- |
-| **Page 1** | [`pages/1_Tong_Quan_Kinh_Doanh.py`](pages/1_Tong_Quan_Kinh_Doanh.py) | *[Sinh viên 1]* | KPI (`st.metric`), **Biểu đồ tổng hợp (Grouped/Stacked Bar)**, **Phân phối (Histogram & Boxplot)** & **RFM Analysis** |
-| **Page 2** | [`pages/2_Xu_Huong_Doanh_Thu.py`](pages/2_Xu_Huong_Doanh_Thu.py) | *[Sinh viên 2]* | **Biểu đồ xu hướng thời gian** (Plotly Line), bộ lọc động (`date_input`/`slider`) & **Dự báo 3–6 tháng (Prophet / ARIMA)** |
-| **Page 3** | [`pages/3_Phan_Tich_Khu_Vuc.py`](pages/3_Phan_Tich_Khu_Vuc.py) | *[Sinh viên 3]* | **Biểu đồ so sánh khu vực** (Bar chart), `st.multiselect`, Pivot Table & **Bản đồ Choropleth Hoa Kỳ** |
-| **Page 4 & 5** | [`pages/4_Phan_Tich_San_Pham.py`](pages/4_Phan_Tich_San_Pham.py)<br>[`pages/5_Trai_Nghiem_Nguoi_Dung.py`](pages/5_Trai_Nghiem_Nguoi_Dung.py) | *[Sinh viên 4]* *(cùng nhóm tích hợp)* | Top N sản phẩm, **Sunburst/Treemap khoan sâu**, **Apriori giỏ hàng**, đồng bộ `st.session_state`, `@st.cache_data` & **Gemini 3.8 Flash Chatbot** |
+| **Page 1** | [`pages/1_Tong_Quan_Kinh_Doanh.py`](pages/1_Tong_Quan_Kinh_Doanh.py) | *[Sinh viên 1]* | KPI (`st.metric`), **Grouped/Stacked Bar**, **Histogram & Boxplot**, **RFM** & **Cohort Retention** |
+| **Page 2** | [`pages/2_Xu_Huong_Doanh_Thu.py`](pages/2_Xu_Huong_Doanh_Thu.py) | *[Sinh viên 2]* | **Xu hướng thời gian** (Plotly Line), bộ lọc động, **Dự báo Prophet/ARIMA** & **Seasonality Heatmap** |
+| **Page 3** | [`pages/3_Phan_Tich_Khu_Vuc.py`](pages/3_Phan_Tich_Khu_Vuc.py) | *[Sinh viên 3]* | **So sánh khu vực** (Bar), `st.multiselect`, **Choropleth Hoa Kỳ** & **Shipping SLA** |
+| **Page 4 & 5** | [`pages/4_Phan_Tich_San_Pham.py`](pages/4_Phan_Tich_San_Pham.py)<br>[`pages/5_Trai_Nghiem_Nguoi_Dung.py`](pages/5_Trai_Nghiem_Nguoi_Dung.py) | *[Sinh viên 4]* *(cùng nhóm tích hợp)* | Top N, **Sunburst/Treemap**, **Apriori**, **Pareto 80/20**, **What-If Simulator**, **Cảnh báo lỗ**, **Xuất báo cáo** & **Gemini AI Chatbot** |
 
 ---
 

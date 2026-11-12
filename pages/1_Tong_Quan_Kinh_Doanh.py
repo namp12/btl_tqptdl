@@ -7,7 +7,11 @@ import plotly.express as px
 import streamlit as st
 
 from components.sidebar import init_page, render_global_sidebar
-from data.analytics import compute_rfm_segments, summarize_by_category
+from data.analytics import (
+    compute_cohort_retention,
+    compute_rfm_segments,
+    summarize_by_category,
+)
 from utils.formatters import format_int, format_usd
 
 init_page("Page 1 - Tổng quan & RFM", icon="📊")
@@ -18,6 +22,12 @@ _, _, df = render_global_sidebar()
 def cached_rfm(data: pd.DataFrame) -> pd.DataFrame:
     """Cache kết quả tính toán phân khúc khách hàng RFM."""
     return compute_rfm_segments(data)
+
+
+@st.cache_data(show_spinner=False)
+def cached_cohort(data: pd.DataFrame) -> pd.DataFrame:
+    """Cache ma trận tỷ lệ giữ chân khách hàng theo Cohort."""
+    return compute_cohort_retention(data)
 
 
 st.title("📊 Page 1: Tổng quan kinh doanh & Phân khúc khách hàng (RFM)")
@@ -47,11 +57,12 @@ col6.metric("🚚 Thời gian giao hàng TB", f"{df['Shipping_Days'].mean():.1f}
 
 st.divider()
 
-tab_overview, tab_dist, tab_rfm = st.tabs(
+tab_overview, tab_dist, tab_rfm, tab_cohort = st.tabs(
     [
         "📊 Cơ cấu & Biểu đồ Tổng hợp (Grouped/Stacked)",
         "📉 Phân phối Dữ liệu (Histogram & Boxplot)",
         "🎯 Phân khúc Khách hàng (RFM Analysis)",
+        "🔁 Cohort Giữ chân Khách hàng",
     ]
 )
 
@@ -198,3 +209,21 @@ with tab_rfm:
         use_container_width=True,
         hide_index=True,
     )
+
+with tab_cohort:
+    st.subheader("🔁 Ma trận giữ chân khách hàng theo Năm gia nhập (Cohort Retention %)")
+    st.caption("Theo dõi tỷ lệ khách hàng quay lại mua sắm qua từng năm kể từ lần mua đầu tiên.")
+    cohort_matrix = cached_cohort(df)
+    if cohort_matrix.empty:
+        st.info("Chưa đủ dữ liệu đa năm trong bộ lọc hiện tại để lập ma trận Cohort.")
+    else:
+        fig_cohort = px.imshow(
+            cohort_matrix,
+            text_auto=".1f",
+            color_continuous_scale="YlGnBu",
+            aspect="auto",
+            title="Tỷ lệ giữ chân khách hàng (%) theo Cohort năm",
+            labels={"x": "Số năm sau lần mua đầu", "y": "Nhóm Cohort", "color": "Tỷ lệ (%)"},
+        )
+        st.plotly_chart(fig_cohort, use_container_width=True)
+        st.dataframe(cohort_matrix.style.format("{:.1f}%"), use_container_width=True)

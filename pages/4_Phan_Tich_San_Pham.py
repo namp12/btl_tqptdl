@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from components.sidebar import init_page, render_global_sidebar
 from data.analytics import (
+    compute_pareto_abc,
     run_market_basket_apriori,
     summarize_by_category,
     summarize_top_products,
@@ -84,11 +86,12 @@ if df_filtered.empty:
     st.warning("Không có giao dịch nào thỏa mãn điều kiện lọc.")
     st.stop()
 
-tab_top, tab_sunburst, tab_apriori = st.tabs(
+tab_top, tab_sunburst, tab_apriori, tab_pareto = st.tabs(
     [
         f"🏅 Top {top_n} Sản phẩm & Sub-Category",
         "🌞 Biểu đồ phân cấp (Sunburst / Treemap)",
         "🛒 Phân tích Giỏ hàng (Market Basket - Apriori)",
+        "⚖️ Phân tích Pareto 80/20 (ABC)",
     ]
 )
 
@@ -198,6 +201,66 @@ with tab_apriori:
 
         st.dataframe(
             rules_df.style.format({"Support": "{:.2%}", "Confidence": "{:.2%}", "Lift": "{:.2f}"}),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+with tab_pareto:
+    st.subheader("⚖️ Phân tích Pareto 80/20 & Phân loại ABC")
+    pareto_entity = st.radio(
+        "Đối tượng phân tích Pareto",
+        options=["Sub-Category", "Product Name", "Customer Name"],
+        horizontal=True,
+    )
+    abc_df = compute_pareto_abc(df_filtered, entity_col=pareto_entity)
+    if abc_df.empty:
+        st.info("Không đủ dữ liệu để tính phân tích Pareto.")
+    else:
+        a_count = int((abc_df["ABC_Class"] == "Nhóm A (Top 80% doanh thu)").sum())
+        total_items = len(abc_df)
+        p1, p2, p3 = st.columns(3)
+        p1.metric("Tổng số đối tượng", f"{total_items:,}")
+        p2.metric("Số lượng Nhóm A (80% doanh thu)", f"{a_count:,}")
+        p3.metric("Tỷ lệ Nhóm A / Tổng", f"{(a_count / total_items * 100):.1f}%")
+
+        plot_df = abc_df.head(30)
+        fig_pareto = go.Figure()
+        fig_pareto.add_trace(
+            go.Bar(
+                x=plot_df[pareto_entity].astype(str).str.slice(0, 28),
+                y=plot_df["Total_Sales"],
+                name="Doanh thu (USD)",
+                marker_color="#1f77b4",
+            )
+        )
+        fig_pareto.add_trace(
+            go.Scatter(
+                x=plot_df[pareto_entity].astype(str).str.slice(0, 28),
+                y=plot_df["Cumulative_Sales_Pct"],
+                name="Tỷ lệ tích lũy (%)",
+                yaxis="y2",
+                mode="lines+markers",
+                line=dict(color="#ff7f0e", width=2.5),
+            )
+        )
+        fig_pareto.update_layout(
+            title=f"Biểu đồ Pareto (Top 30 {pareto_entity}) & Đường tích lũy %",
+            yaxis=dict(title="Doanh thu (USD)"),
+            yaxis2=dict(title="Tích lũy (%)", overlaying="y", side="right", range=[0, 105]),
+            legend=dict(orientation="h", y=1.12),
+            height=480,
+        )
+        st.plotly_chart(fig_pareto, use_container_width=True)
+
+        st.dataframe(
+            abc_df.head(50).style.format(
+                {
+                    "Total_Sales": "${:,.2f}",
+                    "Total_Profit": "${:,.2f}",
+                    "Sales_Share_Pct": "{:.2f}%",
+                    "Cumulative_Sales_Pct": "{:.2f}%",
+                }
+            ),
             use_container_width=True,
             hide_index=True,
         )

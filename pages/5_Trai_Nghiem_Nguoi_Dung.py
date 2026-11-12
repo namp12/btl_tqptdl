@@ -11,8 +11,10 @@ import streamlit as st
 from components.ai_chatbot import render_ai_chatbot
 from components.sidebar import init_page, render_global_sidebar
 from data.analytics import (
+    detect_loss_anomalies,
     pivot_region_category,
     pivot_year_segment,
+    simulate_discount_what_if,
     summarize_by_time,
 )
 from utils.formatters import format_int, format_usd
@@ -70,17 +72,104 @@ c3.metric("💰 Doanh thu lọc được", format_usd(df_filtered["Sales"].sum()
 c4.metric("📈 Lợi nhuận lọc được", format_usd(df_filtered["Profit"].sum()))
 
 # Tổ chức nội dung bằng Tabs
-tab_ai, tab_disc, tab_pivot, tab_data = st.tabs(
+tab_ai, tab_sim, tab_disc, tab_pivot, tab_data = st.tabs(
     [
         "🤖 Trợ lý AI Phân tích B2B (Gemini Flash)",
+        "🎯 What-If Simulator & Cảnh báo Lỗ",
         "📉 Tác động Chiết khấu & Lợi nhuận",
         "🧮 Pivot Table & GroupBy",
-        "🗂️ Dữ liệu sạch & Tải CSV",
+        "🗂️ Dữ liệu sạch & Xuất Báo cáo",
     ]
 )
 
 with tab_ai:
     render_ai_chatbot(df_filtered, location="main")
+
+with tab_sim:
+    st.subheader("🎯 Mô phỏng Kịch bản Kinh doanh (What-If Simulator)")
+    st.caption(
+        "Giả lập tác động tài chính nếu đặt trần chiết khấu tối đa và điều chỉnh giá nhóm hàng lỗ "
+        "(giả định sản lượng giữ nguyên, giá vốn suy ra từ Sales - Profit)."
+    )
+    s1, s2 = st.columns(2)
+    with s1:
+        cap_pct = st.slider("Đặt trần chiết khấu tối đa (%)", min_value=0, max_value=50, value=20, step=5)
+    with s2:
+        uplift_pct = st.slider(
+            "Điều chỉnh giá nhóm lỗ Tables/Bookcases/Supplies (%)",
+            min_value=-10,
+            max_value=25,
+            value=5,
+            step=1,
+        )
+
+    sim_res = simulate_discount_what_if(
+        df_filtered,
+        max_discount_cap=cap_pct / 100.0,
+        loss_subcat_uplift_pct=float(uplift_pct),
+    )
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric(
+        "Lợi nhuận mô phỏng",
+        format_usd(sim_res["sim_profit"]),
+        delta=f"+{format_usd(sim_res['profit_gain'])}" if sim_res["profit_gain"] >= 0 else format_usd(sim_res["profit_gain"]),
+    )
+    m2.metric(
+        "Biên lợi nhuận mới",
+        f"{sim_res['sim_margin_pct']:.2f}%",
+        delta=f"{sim_res['sim_margin_pct'] - sim_res['actual_margin_pct']:+.2f}%",
+    )
+    m3.metric("Doanh thu mô phỏng", format_usd(sim_res["sim_sales"]))
+    m4.metric(
+        "Giao dịch bị lỗ còn lại",
+        format_int(sim_res["sim_loss_rows"]),
+        delta=f"{sim_res['sim_loss_rows'] - sim_res['actual_loss_rows']:,} dòng",
+        delta_color="inverse",
+    )
+
+    compare_df = pd.DataFrame(
+        {
+            "Kịch bản": ["Thực tế hiện tại", "Thực tế hiện tại", "Mô phỏng What-If", "Mô phỏng What-If"],
+            "Chỉ số": ["Doanh thu", "Lợi nhuận", "Doanh thu", "Lợi nhuận"],
+            "Giá trị (USD)": [
+                sim_res["actual_sales"],
+                sim_res["actual_profit"],
+                sim_res["sim_sales"],
+                sim_res["sim_profit"],
+            ],
+        }
+    )
+    fig_sim = px.bar(
+        compare_df,
+        x="Chỉ số",
+        y="Giá trị (USD)",
+        color="Kịch bản",
+        barmode="group",
+        text_auto=".2s",
+        title="So sánh Doanh thu & Lợi nhuận: Thực tế vs. Kịch bản What-If",
+    )
+    st.plotly_chart(fig_sim, use_container_width=True)
+
+    st.divider()
+    st.subheader("🚨 Trung tâm Cảnh báo Đơn hàng Thua lỗ Nghiêm trọng")
+    loss_thresh = st.slider(
+        "Ngưỡng cảnh báo lỗ tối thiểu (Profit ≤ USD)",
+        min_value=-1000,
+        max_value=-20,
+        value=-150,
+        step=10,
+    )
+    anomalies_df = detect_loss_anomalies(df_filtered, profit_threshold=float(loss_thresh))
+    if anomalies_df.empty:
+        st.success("Không có đơn hàng nào lỗ vượt ngưỡng cảnh báo trong bộ lọc hiện tại.")
+    else:
+        st.warning(f"Phát hiện **{len(anomalies_df):,}** giao dịch có lợi nhuận ≤ {format_usd(loss_thresh)}.")
+        st.dataframe(
+            anomalies_df.style.format({"Sales": "${:,.2f}", "Profit": "${:,.2f}", "Discount": "{:.0%}"}),
+            use_container_width=True,
+            hide_index=True,
+        )
 
 with tab_disc:
     st.subheader("Mối quan hệ giữa Chiết khấu (Discount) và Lợi nhuận (Profit)")
@@ -134,16 +223,42 @@ with tab_pivot:
         )
 
 with tab_data:
-    st.subheader("Xem trước dữ liệu sau khi làm sạch và chuẩn hóa")
+    st.subheader("Xem trước dữ liệu sau khi làm sạch và xuất báo cáo nhanh")
     st.dataframe(df_filtered.head(100), use_container_width=True, hide_index=True)
 
-    csv_bytes = df_filtered.to_csv(index=False).encode("utf-8-sig")
-    st.download_button(
-        label="⬇️ Tải xuống dữ liệu đã lọc (CSV)",
-        data=csv_bytes,
-        file_name="superstore_cleaned_filtered.csv",
-        mime="text/csv",
-    )
+    dl1, dl2 = st.columns(2)
+    with dl1:
+        csv_bytes = df_filtered.to_csv(index=False).encode("utf-8-sig")
+        st.download_button(
+            label="⬇️ Tải xuống dữ liệu đã lọc (CSV)",
+            data=csv_bytes,
+            file_name="superstore_cleaned_filtered.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with dl2:
+        tot_sales = float(df_filtered["Sales"].sum())
+        tot_profit = float(df_filtered["Profit"].sum())
+        margin_pct = (tot_profit / tot_sales * 100.0) if tot_sales else 0.0
+        top_cat = df_filtered.groupby("Category")["Profit"].sum().idxmax()
+        worst_subcat = df_filtered.groupby("Sub-Category")["Profit"].sum().idxmin()
+        summary_md = (
+            f"# BÁO CÁO TÓM TẮT ĐIỀU HÀNH SUPERSTORE\n\n"
+            f"- **Phạm vi dữ liệu:** {df_filtered['Order Date'].min().strftime('%Y-%m-%d')} → "
+            f"{df_filtered['Order Date'].max().strftime('%Y-%m-%d')} ({len(df_filtered):,} dòng)\n"
+            f"- **Tổng doanh thu:** {format_usd(tot_sales)}\n"
+            f"- **Tổng lợi nhuận:** {format_usd(tot_profit)} (Biên lợi nhuận: {margin_pct:.2f}%)\n"
+            f"- **Tổng số đơn hàng:** {format_int(df_filtered['Order ID'].nunique())}\n"
+            f"- **Ngành hàng sinh lời cao nhất:** {top_cat}\n"
+            f"- **Nhóm sản phẩm cần tối ưu nhất:** {worst_subcat}\n"
+        ).encode("utf-8")
+        st.download_button(
+            label="📝 Tải Báo cáo Tóm tắt Điều hành (.md)",
+            data=summary_md,
+            file_name="executive_summary_superstore.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
 
 with st.expander("🛠️ Chi tiết Kiến trúc Kỹ thuật: Cache, Session State & Chất lượng Dữ liệu"):
     st.markdown(
