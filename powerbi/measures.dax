@@ -1,29 +1,21 @@
-// Bộ DAX Measures chuẩn cho Superstore Sales Dataset trong Power BI Desktop
-// Tạo một bảng chứa Measure (Home -> Enter data -> đặt tên "_Measures") rồi lần lượt tạo từng Measure dưới đây
+DEFINE
+    MEASURE '_Measures'[Total Sales] = SUM('Sample - Superstore'[Sales])
+    MEASURE '_Measures'[Total Profit] = SUM('Sample - Superstore'[Profit])
+    MEASURE '_Measures'[Profit Margin %] = DIVIDE([Total Profit], [Total Sales], 0)
+    MEASURE '_Measures'[Total Orders] = DISTINCTCOUNT('Sample - Superstore'[Order ID])
+    MEASURE '_Measures'[Total Quantity] = SUM('Sample - Superstore'[Quantity])
+    MEASURE '_Measures'[Total Customers] = DISTINCTCOUNT('Sample - Superstore'[Customer ID])
+    MEASURE '_Measures'[Avg Order Value (AOV)] = DIVIDE([Total Sales], [Total Orders], 0)
+    MEASURE '_Measures'[Avg Discount %] = AVERAGE('Sample - Superstore'[Discount])
+    MEASURE '_Measures'[Avg Shipping Days] = AVERAGE('Sample - Superstore'[Shipping Days])
+    MEASURE '_Measures'[Loss Rows Count] = CALCULATE(COUNTROWS('Sample - Superstore'), 'Sample - Superstore'[Profit] < 0)
+    MEASURE '_Measures'[Loss Rate %] = DIVIDE([Loss Rows Count], COUNTROWS('Sample - Superstore'), 0)
+    MEASURE '_Measures'[Sales Prior Year] = CALCULATE([Total Sales], SAMEPERIODLASTYEAR('DimDate'[Date]))
+    MEASURE '_Measures'[Sales YoY %] = DIVIDE([Total Sales] - [Sales Prior Year], [Sales Prior Year], BLANK())
 
-Total Sales = SUM('Sample - Superstore'[Sales])
-
-Total Profit = SUM('Sample - Superstore'[Profit])
-
-Profit Margin % = DIVIDE([Total Profit], [Total Sales], 0)
-
-Total Orders = DISTINCTCOUNT('Sample - Superstore'[Order ID])
-
-Total Quantity = SUM('Sample - Superstore'[Quantity])
-
-Total Customers = DISTINCTCOUNT('Sample - Superstore'[Customer ID])
-
-Avg Order Value (AOV) = DIVIDE([Total Sales], [Total Orders], 0)
-
-Avg Discount % = AVERAGE('Sample - Superstore'[Discount])
-
-Avg Shipping Days = AVERAGE('Sample - Superstore'[Shipping Days])
-
-Loss Rows Count = CALCULATE(COUNTROWS('Sample - Superstore'), 'Sample - Superstore'[Profit] < 0)
-
-Loss Rate % = DIVIDE([Loss Rows Count], COUNTROWS('Sample - Superstore'), 0)
-
-// Measure tăng trưởng YoY (yêu cầu đã tạo bảng DimDate nối với Order Date)
-Sales Prior Year = CALCULATE([Total Sales], SAMEPERIODLASTYEAR('DimDate'[Date]))
-
-Sales YoY % = DIVIDE([Total Sales] - [Sales Prior Year], [Sales Prior Year], BLANK())
+EVALUATE
+ROW(
+    "Total Sales", [Total Sales],
+    "Total Profit", [Total Profit],
+    "Total Orders", [Total Orders]
+)

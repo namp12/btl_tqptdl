@@ -99,3 +99,4 @@ def test_advanced_analytics() -> None:
 
     fc, _ = forecast_monthly_sales(clean, periods=6, method="ARIMA")
     assert len(fc[fc["Loại dữ liệu"] != "Lịch sử thực tế"]) == 6
+
